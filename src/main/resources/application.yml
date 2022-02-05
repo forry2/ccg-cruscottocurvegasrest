@@ -1,0 +1,21 @@
+spring:
+  devtools:
+    restart:
+      enabled: false
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  data:
+    mongodb:
+      uri: ${CCG_MONGODB_URI:mongodb://localhost:27017/ccg}
+  logging:
+    level:
+      com:
+        dxc:
+          curvegas:
+            service:DEBUG
+      org:
+        springframework:
+          data:
+            mongodb:
+              core:DEBUG
