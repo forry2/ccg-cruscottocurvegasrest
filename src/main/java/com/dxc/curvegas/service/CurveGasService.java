@@ -46,6 +46,7 @@ public class CurveGasService {
                         Document doc = new Document();
                         doc.put("quaLettura", "$lettureSingole.quaLettura");
                         doc.put("datLettura", "$lettureSingole.datLettura");
+                        doc.put("quaLetturaStimata", "$lettureSingole.quaLetturaStimata");
                         return new Document("$addFields",doc);
                     }
                 };
@@ -55,13 +56,11 @@ public class CurveGasService {
 
         aggrList.add(sort(ASC, "datLettura"));
 
-        aggrList.add(project("mese", "anno", "codTipoFornitura", "codPdf", "codPdm", "codTipVoceLtu").and("$quaLettura").as("lettureSingole.quaLettura").and("$datLettura").as("lettureSingole.datLettura"));
-//
-//        aggrList.add(
-//                Aggregation
-//                        .group("codPdf")
-//                        .addToSet("lettureSingole").as("blah")
-//        );
+        aggrList.add(project("mese", "anno", "codTipoFornitura", "codPdf", "codPdm", "codTipVoceLtu")
+                .and("$quaLettura").as("lettureSingole.quaLettura")
+                .and("$quaLetturaStimata").as("lettureSingole.quaLetturaStimata")
+                .and("$datLettura").as("lettureSingole.datLettura")
+        );
 
         AggregationResults<Document> aggrRetDocument = mongoTemplate.aggregate(newAggregation(aggrList),"ltuGiornaliereAggregated",Document.class);
 
