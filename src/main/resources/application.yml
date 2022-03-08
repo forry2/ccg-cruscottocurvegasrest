@@ -17,8 +17,7 @@ spring:
       org:
         springframework:
           data:
-            mongodb:
-              core:DEBUG
+            mongodb: TRACE
 server:
   servlet:
     context-path: /ccg

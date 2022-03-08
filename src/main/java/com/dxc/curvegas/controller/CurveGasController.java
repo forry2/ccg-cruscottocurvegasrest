@@ -1,6 +1,5 @@
 package com.dxc.curvegas.controller;
 
-import com.dxc.curvegas.model.LtuGiornaliereAggregatedDto;
 import com.dxc.curvegas.service.CurveGasService;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,5 +25,16 @@ public class CurveGasController {
         return ResponseEntity.ok(service.findCurveGas(codPdf, anno, mese, codTipVoceLtu));
     }
 
+    @GetMapping(value = "curvagas/getCurveList")
+    public ResponseEntity<List<Document>> findCurveGas(
+            @RequestParam(name = "codPdf", required = false) String codPdf,
+            @RequestParam(name = "codPdm", required = false) String codPdm,
+            @RequestParam(name = "codTipoFornitura", required = false) String codTipoFornitura,
+            @RequestParam(name = "codTipVoceLtu", required = false) String codTipVoceLtu,
+            @RequestParam(name = "mese", required = false) String mese,
+            @RequestParam(name = "anno", required = false) String anno
+    ){
+        return ResponseEntity.ok(service.findCurveGasList(codPdf, codPdm, codTipoFornitura, codTipVoceLtu,mese, anno));
+    }
 
 }

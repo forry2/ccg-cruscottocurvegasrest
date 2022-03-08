@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.springframework.data.domain.Sort.Direction.ASC;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
@@ -41,7 +42,7 @@ public class CurveGasService {
 //        );
 
         AggregationOperation customAddFieldsOperation =
-                new AggregationOperation(){
+                new AggregationOperation() {
                     @Override
                     public Document toDocument(AggregationOperationContext aoc) {
                         Document doc = new Document();
@@ -51,7 +52,7 @@ public class CurveGasService {
                         doc.put("consumoGiornalieroStimato", "$lettureSingole.consumoGiornalieroStimato");
                         doc.put("codTipoFonteLtuGio", "$lettureSingole.codTipoFonteLtuGio");
                         doc.put("codTipLtuGio", "$lettureSingole.codTipLtuGio");
-                        return new Document("$addFields",doc);
+                        return new Document("$addFields", doc);
                     }
                 };
         aggrList.add(customAddFieldsOperation);
@@ -61,24 +62,24 @@ public class CurveGasService {
         aggrList.add(sort(ASC, "datLettura"));
 
         aggrList.add(project(
-                "codPdf",
-                "consumoReale",
-                "minQuaLettura",
-                "maxQuaLettura",
-                "dtaPrimaLetturaValida",
-                "primaLetturaValida",
-                "dtaUltimaLetturaValida",
-                "ultimaLetturaValida"
+                        "codPdf",
+                        "consumoReale",
+                        "minQuaLettura",
+                        "maxQuaLettura",
+                        "dtaPrimaLetturaValida",
+                        "primaLetturaValida",
+                        "dtaUltimaLetturaValida",
+                        "ultimaLetturaValida"
                 )
                         .and("$quaLettura").as("lettureSingole.quaLettura")
                         .and("$datLettura").as("lettureSingole.datLettura")
                         .and("$consumoGiornaliero").as("lettureSingole.consumoGiornaliero")
                         .and("$consumoGiornalieroStimato").as("lettureSingole.consumoGiornalieroStimato")
                         .and("$codTipoFonteLtuGio").as("lettureSingole.codTipoFonteLtuGio")
-                .and("$codTipLtuGio").as("lettureSingole.codTipLtuGio")
+                        .and("$codTipLtuGio").as("lettureSingole.codTipLtuGio")
         );
 
-        AggregationResults<Document> aggrRetDocument = mongoTemplate.aggregate(newAggregation(aggrList),"ltuGiornaliereAggregated",Document.class);
+        AggregationResults<Document> aggrRetDocument = mongoTemplate.aggregate(newAggregation(aggrList), "ltuGiornaliereAggregated", Document.class);
 
         ArrayList<Document> lettureSingole = new ArrayList<>();
 
@@ -102,6 +103,96 @@ public class CurveGasService {
         );
         retDocument.append("lettureSingole", lettureSingole);
         return retDocument;
+    }
 
+    public List<Document> findCurveGasList(
+            String codPdf,
+            String codPdm,
+            String codTipoFornitura,
+            String codTipVoceLtu,
+            String mese,
+            String anno
+    ) {
+        Document retDoc = new Document();
+        ArrayList<AggregationOperation> aggrList = new ArrayList<>();
+        Criteria matchCriteria = new Criteria();
+        if (StringUtils.isNotBlank(codPdf))
+            matchCriteria.and("codPdf").is(codPdf);
+        if (StringUtils.isNotBlank(codPdm))
+            matchCriteria.and("codPdm").is(codPdm);
+        if (StringUtils.isNotBlank(codTipoFornitura))
+            matchCriteria.and("codTipoFornitura").is(codTipoFornitura);
+        if (StringUtils.isNotBlank(codTipVoceLtu))
+            matchCriteria.and("codTipVoceLtu").is(codTipVoceLtu);
+        if (StringUtils.isNotBlank(mese))
+            matchCriteria.and("mese").is(mese);
+        if (StringUtils.isNotBlank(anno))
+            matchCriteria.and("anno").is(anno);
+        aggrList.add(match(matchCriteria));
+
+        aggrList.add(unwind("$lettureSingole"));
+
+        aggrList.add(project(
+                "codPdf",
+                "codPdm",
+                "anno",
+                "mese",
+                "codTipVoceLtu",
+                "consumoReale",
+                "minQuaLettura",
+                "maxQuaLettura",
+                "dtaPrimaLetturaValida",
+                "primaLetturaValida",
+                "dtaUltimaLetturaValida",
+                "ultimaLetturaValida")
+                .and("$lettureSingole.quaLettura").as("lettureSingole.quaLettura")
+                .and("$lettureSingole.datLettura").as("lettureSingole.datLettura")
+                .and("$lettureSingole.consumoGiornaliero").as("lettureSingole.consumoGiornaliero")
+                .and("$lettureSingole.consumoGiornalieroStimato").as("lettureSingole.consumoGiornalieroStimato")
+                .and("$lettureSingole.codTipoFonteLtuGio").as("lettureSingole.codTipoFonteLtuGio")
+                .and("$lettureSingole.codTipLtuGio").as("lettureSingole.codTipLtuGio")
+                .andExclude("_id"));
+
+        AggregationOperation groupOperation = new AggregationOperation() {
+            @Override
+            public Document toDocument(AggregationOperationContext aoc) {
+                Document pushDoc = new Document("$push", "$lettureSingole");
+
+                Document idDoc = new Document("codPdf", "$codPdf")
+                        .append("codPdm", "$codPdm")
+                        .append("anno", "$anno")
+                        .append("mese", "$mese")
+                        .append("consumoReale", "$consumoReale")
+                        .append("minQuaLettura", "$minQuaLettura")
+                        .append("maxQuaLettura", "$maxQuaLettura")
+                        .append("dtaPrimaLetturaValida", "$dtaPrimaLetturaValida")
+                        .append("primaLetturaValida", "$primaLetturaValida")
+                        .append("dtaUltimaLetturaValida", "$dtaUltimaLetturaValida")
+                        .append("ultimaLetturaValida", "$ultimaLetturaValida");
+
+                return new Document("$group", new Document("_id", idDoc).append("lettureSingole", pushDoc));
+            }
+        };
+        aggrList.add(groupOperation);
+
+        aggrList.add(
+            project()
+                .and("$_id.codPdf").as("codPdf")
+                .and("$_id.codPdm").as( "codPdm")
+                .and("$_id.anno").as( "anno")
+                .and("$_id.mese").as( "mese")
+                .and("$_id.consumoReale").as( "consumoReale")
+                .and("$_id.minQuaLettura").as( "minQuaLettura")
+                .and("$_id.maxQuaLettura").as( "maxQuaLettura")
+                .and("$_id.dtaPrimaLetturaValida").as( "dtaPrimaLetturaValida")
+                .and("$_id.primaLetturaValida").as( "primaLetturaValida")
+                .and("$_id.dtaUltimaLetturaValida").as( "dtaUltimaLetturaValida")
+                .and("$_id.ultimaLetturaValida").as( "ultimaLetturaValida")
+                .and("$lettureSingole").as("lettureSingole")
+                .andExclude("_id")
+        );
+
+        return mongoTemplate.aggregate(newAggregation(aggrList), "ltuGiornaliereAggregated", Document.class)
+                .getMappedResults();
     }
 }
